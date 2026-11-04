@@ -1813,4 +1813,21 @@
     <string name="bento_palette_ocean">Ocean</string>
     <string name="bento_palette_sunset">Sunset</string>
     <string name="bento_palette_berry">Berry</string>
+    <string name="ssh_section_payload">Payload and bypass</string>
+    <string name="ssh_payload_mode">Connection mode</string>
+    <string name="ssh_payload_none">Normal SSH (no payload)</string>
+    <string name="ssh_payload_direct">Payload sent to the SSH host</string>
+    <string name="ssh_payload_proxy">Payload through an HTTP proxy</string>
+    <string name="ssh_proxy_host">Proxy host</string>
+    <string name="ssh_proxy_port">Proxy port</string>
+    <string name="ssh_payload">Payload</string>
+    <string name="ssh_payload_tags">Tags: [host] [port] [host_port] [method] [protocol] [crlf] [cr] [lf] [split] [split=ms]. In proxy mode an empty payload sends a plain CONNECT request.</string>
+    <string name="ssh_payload_delay">Default [split] delay (ms)</string>
+    <string name="ssh_sni">TLS SNI (optional, wraps the connection in TLS)</string>
+    <string name="ssh_response">Server reply handling</string>
+    <string name="ssh_response_auto">Auto (drop the HTTP reply, fail on 4xx or 5xx)</string>
+    <string name="ssh_response_none">Do not read a reply</string>
+    <string name="ssh_response_strict">Strict (only 2xx or 101)</string>
+    <string name="ssh_host_key_pin">Pinned host key (optional)</string>
+    <string name="ssh_host_key_pin_hint">Leave empty on the first connection, then copy the SHA256 fingerprint from the Logs screen to lock the server identity.</string>
 </resources>

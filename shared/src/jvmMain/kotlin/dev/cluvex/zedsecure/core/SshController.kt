@@ -53,6 +53,11 @@ class SshController(
                 val proxy = com.jcraft.jsch.ProxySOCKS5(proxySocksHost, proxySocksPort)
                 if (proxySocksUser.isNotBlank()) proxy.setUserPasswd(proxySocksUser, proxySocksPass)
                 s.setProxy(proxy)
+                if (profile.payloadMode != SshProfile.PAYLOAD_NONE) {
+                    LogBus.append("W/$TAG payload settings ignored: this SSH runs inside another tunnel")
+                }
+            } else if (profile.payloadMode != SshProfile.PAYLOAD_NONE) {
+                s.setProxy(PayloadProxy(profile) { LogBus.append("I/$TAG $it") })
             }
             s.setConfig(sessionProps())
             if (profile.authType == SshProfile.AUTH_KEY) {
@@ -63,6 +68,7 @@ class SshController(
             }
             s.connect(CONNECT_TIMEOUT_MS)
             session = s
+            verifyHostKey(s)
 
             var bound: ServerSocket? = null
             var boundPort = -1
@@ -243,6 +249,16 @@ class SshController(
         reply[1] = status.toByte()
         reply[3] = ADDR_IPV4.toByte()
         sendAll(reply)
+    }
+
+    private fun verifyHostKey(s: com.jcraft.jsch.Session) {
+        val key = s.hostKey ?: return
+        val fingerprint = HostKeyPin.fingerprint(key.key)
+        LogBus.append("I/$TAG SSH host key (${key.type}) $fingerprint")
+        val pin = profile.hostKeyPin.trim()
+        if (pin.isNotEmpty() && !HostKeyPin.matches(pin, fingerprint)) {
+            throw IllegalStateException("SSH host key does not match the saved pin (got $fingerprint)")
+        }
     }
 
     private companion object {

@@ -49,6 +49,14 @@ fun SshSheet(
     var password by remember { mutableStateOf(initial?.password ?: "") }
     var privateKey by remember { mutableStateOf(initial?.privateKey ?: "") }
     var passphrase by remember { mutableStateOf(initial?.keyPassphrase ?: "") }
+    var payloadMode by remember { mutableStateOf(initial?.payloadMode ?: SshProfile.PAYLOAD_NONE) }
+    var payload by remember { mutableStateOf(initial?.payload ?: "") }
+    var payloadDelay by remember { mutableStateOf((initial?.payloadDelayMs ?: 200).toString()) }
+    var proxyHost by remember { mutableStateOf(initial?.proxyHost ?: "") }
+    var proxyPort by remember { mutableStateOf((initial?.proxyPort ?: 8080).toString()) }
+    var sni by remember { mutableStateOf(initial?.sni ?: "") }
+    var responseMode by remember { mutableStateOf(initial?.responseMode ?: SshProfile.RESPONSE_AUTO) }
+    var hostKeyPin by remember { mutableStateOf(initial?.hostKeyPin ?: "") }
 
     val isKey = authType == SshProfile.AUTH_KEY
 
@@ -84,6 +92,52 @@ fun SshSheet(
                 F(password, Res.string.manual_password) { password = it }
             }
 
+            Text(
+                stringResource(Res.string.ssh_section_payload),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            PickerField(
+                label = stringResource(Res.string.ssh_payload_mode),
+                options = listOf(
+                    SshProfile.PAYLOAD_NONE to stringResource(Res.string.ssh_payload_none),
+                    SshProfile.PAYLOAD_DIRECT to stringResource(Res.string.ssh_payload_direct),
+                    SshProfile.PAYLOAD_PROXY to stringResource(Res.string.ssh_payload_proxy),
+                ),
+                selected = payloadMode,
+                onSelect = { payloadMode = it },
+            )
+            if (payloadMode != SshProfile.PAYLOAD_NONE) {
+                if (payloadMode == SshProfile.PAYLOAD_PROXY) {
+                    F(proxyHost, Res.string.ssh_proxy_host, "proxy.example.com") { proxyHost = it }
+                    F(proxyPort, Res.string.ssh_proxy_port, numeric = true) { proxyPort = it }
+                }
+                F(payload, Res.string.ssh_payload, "CONNECT [host_port] HTTP/1.1[crlf]Host: [host][crlf][crlf]", minLines = 3) { payload = it }
+                Text(
+                    stringResource(Res.string.ssh_payload_tags),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                F(payloadDelay, Res.string.ssh_payload_delay, numeric = true) { payloadDelay = it }
+                F(sni, Res.string.ssh_sni, "cdn.example.com") { sni = it }
+                PickerField(
+                    label = stringResource(Res.string.ssh_response),
+                    options = listOf(
+                        SshProfile.RESPONSE_AUTO to stringResource(Res.string.ssh_response_auto),
+                        SshProfile.RESPONSE_NONE to stringResource(Res.string.ssh_response_none),
+                        SshProfile.RESPONSE_STRICT to stringResource(Res.string.ssh_response_strict),
+                    ),
+                    selected = responseMode,
+                    onSelect = { responseMode = it },
+                )
+            }
+            F(hostKeyPin, Res.string.ssh_host_key_pin, "SHA256:...") { hostKeyPin = it }
+            Text(
+                stringResource(Res.string.ssh_host_key_pin_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             Button(
                 onClick = {
                     onSave(
@@ -96,6 +150,14 @@ fun SshSheet(
                             password = password,
                             privateKey = privateKey.trim(),
                             keyPassphrase = passphrase,
+                            payloadMode = payloadMode,
+                            payload = payload.trim(),
+                            payloadDelayMs = payloadDelay.toIntOrNull()?.coerceIn(0, 60_000) ?: 200,
+                            proxyHost = proxyHost.trim(),
+                            proxyPort = proxyPort.toIntOrNull() ?: 8080,
+                            sni = sni.trim(),
+                            responseMode = responseMode,
+                            hostKeyPin = hostKeyPin.trim(),
                         ),
                     )
                 },
