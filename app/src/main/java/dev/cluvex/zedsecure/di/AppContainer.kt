@@ -60,7 +60,13 @@ class AppContainer(context: Context) {
             runCatching { Libv2ray.autoSelectNetworkChanged() }
         }
         dev.cluvex.zedsecure.core.AutoSelect.supportsPinning = true
-        TrafficAccountant(configRepository, scope)
+        val usageFile = java.io.File(context.filesDir, "usage_history.txt")
+        dev.cluvex.zedsecure.domain.usage.UsageClock.nowMillis = { System.currentTimeMillis() }
+        dev.cluvex.zedsecure.domain.usage.UsageClock.offsetMillis = {
+            java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis()).toLong()
+        }
+        dev.cluvex.zedsecure.domain.usage.UsageLedger.load(runCatching { usageFile.readText() }.getOrNull())
+        TrafficAccountant(configRepository, scope, usageFile)
 
         LogcatTail.register(scope)
 
@@ -122,13 +128,28 @@ private fun anyVpnNetwork(connectivity: android.net.ConnectivityManager): Boolea
 private class TrafficAccountant(
     private val repository: ConfigRepository,
     scope: CoroutineScope,
+    private val usageFile: java.io.File,
 ) {
+    private fun saveUsage() {
+        runCatching {
+            val tmp = java.io.File(usageFile.parentFile, usageFile.name + ".tmp")
+            tmp.writeText(dev.cluvex.zedsecure.domain.usage.UsageLedger.encode())
+            if (!tmp.renameTo(usageFile)) {
+                usageFile.writeText(tmp.readText())
+                tmp.delete()
+            }
+        }
+    }
+
     init {
         scope.launch {
             var session = -1
             var lastDown = 0L
             var lastUp = 0L
             var activeId: String? = null
+            var ledgerDown = 0L
+            var ledgerUp = 0L
+            var lastSave = 0L
 
             VpnManager.status.collect { s ->
                 when (s.state) {
@@ -137,7 +158,24 @@ private class TrafficAccountant(
                             session = s.sessionId
                             lastDown = 0
                             lastUp = 0
+                            ledgerDown = 0
+                            ledgerUp = 0
                             activeId = repository.activeId.value
+                        }
+
+                        val gDown = (s.totalDownload - ledgerDown).coerceAtLeast(0)
+                        val gUp = (s.totalUpload - ledgerUp).coerceAtLeast(0)
+                        if (gDown > 0 || gUp > 0) {
+                            ledgerDown = s.totalDownload
+                            ledgerUp = s.totalUpload
+                            val now = System.currentTimeMillis()
+                            dev.cluvex.zedsecure.domain.usage.UsageLedger.record(
+                                gDown, gUp, now, java.util.TimeZone.getDefault().getOffset(now).toLong(),
+                            )
+                            if (now - lastSave > 30_000) {
+                                lastSave = now
+                                saveUsage()
+                            }
                         }
 
                         val autoMember = dev.cluvex.zedsecure.core.AutoSelect.session.value
@@ -152,6 +190,9 @@ private class TrafficAccountant(
                         }
                     }
                     ConnectionState.Idle, ConnectionState.Error -> {
+                        saveUsage()
+                        ledgerDown = 0
+                        ledgerUp = 0
                         activeId?.let { repository.addUsage(it, 0, 0, persist = true) }
                         activeId = null
                         session = -1

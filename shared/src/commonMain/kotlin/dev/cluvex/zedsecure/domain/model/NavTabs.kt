@@ -1,11 +1,11 @@
 package dev.cluvex.zedsecure.domain.model
 
-enum class NavTab { Home, Servers, Subscriptions, Vault, SpeedTest, Map, Logs, Routing, Apps, Settings }
+enum class NavTab { Home, Servers, Subscriptions, Vault, SpeedTest, Map, Logs, Routing, Apps, Usage, Settings }
 
 object NavTabs {
     const val MAX = 5
 
-    val DEFAULT: List<NavTab> = listOf(NavTab.Home, NavTab.Servers, NavTab.Apps, NavTab.Logs, NavTab.Settings)
+    val DEFAULT: List<NavTab> = listOf(NavTab.Home, NavTab.Servers, NavTab.Usage, NavTab.Apps, NavTab.Settings)
 
     val HIDDEN: Set<NavTab> = setOf(NavTab.Subscriptions, NavTab.Vault, NavTab.Map)
 

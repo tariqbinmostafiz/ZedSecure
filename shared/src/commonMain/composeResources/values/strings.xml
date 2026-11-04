@@ -1830,4 +1830,19 @@
     <string name="ssh_response_strict">Strict (only 2xx or 101)</string>
     <string name="ssh_host_key_pin">Pinned host key (optional)</string>
     <string name="ssh_host_key_pin_hint">Leave empty on the first connection, then copy the SHA256 fingerprint from the Logs screen to lock the server identity.</string>
+    <string name="nav_usage">Usage</string>
+    <string name="usage_title">Data usage</string>
+    <string name="usage_day">Days</string>
+    <string name="usage_week">Weeks</string>
+    <string name="usage_month">Months</string>
+    <string name="usage_today">Today</string>
+    <string name="usage_this_week">This week</string>
+    <string name="usage_this_month">This month</string>
+    <string name="usage_total">Total</string>
+    <string name="usage_download">Download</string>
+    <string name="usage_upload">Upload</string>
+    <string name="usage_empty">No traffic recorded yet. Connect and use the tunnel, and the history appears here.</string>
+    <string name="usage_note">Counts the traffic that went through the tunnel while it was connected. The history stays on this device only. Weeks start on Monday.</string>
+    <string name="usage_clear">Clear usage history</string>
+    <string name="usage_clear_confirm">All saved daily, weekly and monthly numbers will be deleted. This cannot be undone.</string>
 </resources>

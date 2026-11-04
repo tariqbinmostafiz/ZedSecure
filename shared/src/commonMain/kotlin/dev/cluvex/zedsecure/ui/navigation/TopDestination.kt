@@ -2,6 +2,7 @@ package dev.cluvex.zedsecure.ui.navigation
 
 import dev.cluvex.zedsecure.domain.model.NavTab
 import dev.cluvex.zedsecure.shared.resources.Res
+import dev.cluvex.zedsecure.shared.resources.ic_bar_chart
 import dev.cluvex.zedsecure.shared.resources.ic_description
 import dev.cluvex.zedsecure.shared.resources.ic_dns
 import dev.cluvex.zedsecure.shared.resources.ic_encrypted
@@ -22,6 +23,7 @@ import dev.cluvex.zedsecure.shared.resources.nav_servers
 import dev.cluvex.zedsecure.shared.resources.nav_settings
 import dev.cluvex.zedsecure.shared.resources.nav_speed
 import dev.cluvex.zedsecure.shared.resources.nav_subs
+import dev.cluvex.zedsecure.shared.resources.nav_usage
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 
@@ -39,6 +41,7 @@ enum class TopDestination(
     Logs(Res.string.nav_logs, Res.drawable.ic_description, NavTab.Logs),
     Routing(Res.string.nav_routing, Res.drawable.ic_fill_alt_route, NavTab.Routing),
     Apps(Res.string.nav_apps, Res.drawable.ic_fill_apps, NavTab.Apps),
+    Usage(Res.string.nav_usage, Res.drawable.ic_bar_chart, NavTab.Usage),
     Settings(Res.string.nav_settings, Res.drawable.ic_settings, NavTab.Settings);
 
     companion object {

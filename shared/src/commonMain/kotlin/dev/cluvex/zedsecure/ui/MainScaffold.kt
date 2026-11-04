@@ -421,6 +421,7 @@ fun MainScaffold(
                 TopDestination.Apps -> dev.cluvex.zedsecure.ui.components.ProvidePageBack(null) {
                     dev.cluvex.zedsecure.ui.settings.PerAppProxyScreen(settings, innerPadding, onUpdateSettings, Modifier)
                 }
+                TopDestination.Usage -> dev.cluvex.zedsecure.ui.navigation.UsageTabPage(innerPadding)
                 TopDestination.Settings -> SettingsScreen(
                     settings = settings,
                     contentPadding = innerPadding,
