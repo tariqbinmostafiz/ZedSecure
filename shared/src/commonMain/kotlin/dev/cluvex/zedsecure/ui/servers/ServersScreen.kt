@@ -1185,15 +1185,6 @@ fun ServersScreen(
         ) {
             SpeedDialAction(
                 visible = fanOpen,
-                delayMs = 90,
-                icon = Res.drawable.ic_edit,
-                label = stringResource(Res.string.servers_add_manual),
-            ) {
-                fanOpen = false
-                showManual = true
-            }
-            SpeedDialAction(
-                visible = fanOpen,
                 delayMs = 45,
                 icon = Res.drawable.ic_content_paste,
                 label = stringResource(Res.string.servers_add_clipboard),
@@ -2246,22 +2237,6 @@ private fun AddServerSheet(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 22.dp, vertical = 8.dp),
             )
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            ) {
-                Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    FreeBadge()
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        stringResource(Res.string.add_free_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
-            }
-
             OptionGroup(Res.string.add_group_import)
             Option(Res.drawable.ic_content_paste, Res.string.servers_add_clipboard, onPasteLink)
             Option(Res.drawable.ic_description, Res.string.servers_add_file, onImportFile)
@@ -2270,30 +2245,8 @@ private fun AddServerSheet(
                 Option(Res.drawable.ic_qr_code_2, Res.string.servers_add_scan_qr, onScanQr)
             }
             Option(Res.drawable.ic_add_link, Res.string.servers_add_scan_image, onScanQrImage)
-            Option(Res.drawable.ic_edit, Res.string.servers_add_manual, onManual)
-            Option(Res.drawable.ic_description, Res.string.servers_add_custom, onCustom)
-
             OptionGroup(Res.string.add_group_tunnels)
-            Option(Res.drawable.ic_bolt, Res.string.psiphon_add_title, onPsiphon, free = true)
-            Option(Res.drawable.ic_lock, Res.string.tor_add_title, onTor, free = true)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)
-            Option(Res.drawable.ic_public, Res.string.warp_add_title, onWarp, free = true)
-            if (LocalPlatform.current.supportsSniSpoof) Option(Res.drawable.ic_bolt, Res.string.snispoof_add_title, onSniSpoof)
-
-            OptionGroup(Res.string.add_group_dns)
-            Option(Res.drawable.ic_public, Res.string.dns_tunnel_add_title, onDnsTunnel)
-            Option(Res.drawable.ic_public, Res.string.master_dns_add_title, onMasterDns)
-
-            OptionGroup(Res.string.add_group_vpn)
-            Option(Res.drawable.ic_lock, Res.string.openconnect_add_title, onOpenConnect)
-            Option(Res.drawable.ic_lock, Res.string.ikev2_add_title, onIkev2)
-
-            OptionGroup(Res.string.add_group_chains)
-            Option(Res.drawable.ic_add_link, Res.string.proxychain_add_title, onProxyChain)
-            Option(Res.drawable.ic_add_link, Res.string.crosschain_add_title, onCrossChain)
-
-            OptionGroup(Res.string.add_group_subscription)
-            Option(Res.drawable.ic_add_link, Res.string.subs_add, onSubscription)
         }
     }
 }

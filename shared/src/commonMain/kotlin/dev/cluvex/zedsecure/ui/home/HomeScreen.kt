@@ -282,7 +282,7 @@ fun HomeScreen(
                 )
             }
             ParticleBurst(trigger = burst)
-            dev.cluvex.zedsecure.ui.easteregg.LaserBounce(
+            if (false) dev.cluvex.zedsecure.ui.easteregg.LaserBounce(
                 trigger = laser,
                 color = MaterialTheme.colorScheme.primary,
                 reduceMotion = reduceMotion,
@@ -535,7 +535,7 @@ fun HomeScreen(
 
         ParticleBurst(trigger = burst)
 
-        dev.cluvex.zedsecure.ui.easteregg.LaserBounce(
+        if (false) dev.cluvex.zedsecure.ui.easteregg.LaserBounce(
             trigger = laser,
             color = personalization.connectColor ?: MaterialTheme.colorScheme.primary,
             reduceMotion = reduceMotion,

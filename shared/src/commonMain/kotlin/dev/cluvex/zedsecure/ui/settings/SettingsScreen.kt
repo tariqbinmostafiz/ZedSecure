@@ -186,10 +186,10 @@ fun SettingsScreen(
                     modifier = modifier,
                     onOpen = { page = it },
                     onAbout = { showAbout = true },
-                    onReplayTour = onReplayTour,
-                    onReplaySetup = onReplaySetup,
-                    onOpenVault = onOpenVault,
-                    hasAi = ai != null,
+                    onReplayTour = null,
+                    onReplaySetup = null,
+                    onOpenVault = null,
+                    hasAi = false,
                     onUpdate = onUpdate,
                 )
             } else {
@@ -199,9 +199,9 @@ fun SettingsScreen(
                     modifier = modifier,
                     onOpen = { page = it },
                     onAbout = { showAbout = true },
-                    onReplayTour = onReplayTour,
-                    onReplaySetup = onReplaySetup,
-                    hasAi = ai != null,
+                    onReplayTour = null,
+                    onReplaySetup = null,
+                    hasAi = false,
                 )
             }
             SettingsPage.Ui -> UiPage(settings, contentPadding, modifier, onUpdate, onLanguage) { page = it }
@@ -333,13 +333,6 @@ private fun RootPage(
             reduceMotion = settings.reduceMotion,
         )
 
-        SettingsGroup(modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_SUPPORT)) {
-            SettingsBannerRow(
-                stringResource(Res.string.support_title),
-                stringResource(Res.string.support_subtitle),
-                art = SettingsArts.Support,
-            ) { onOpen(SettingsPage.Support) }
-        }
 
         SettingsGroup(
             stringResource(Res.string.settings_group_personal),
@@ -418,11 +411,6 @@ private fun RootPage(
                 art = SettingsArts.Dns,
             ) { onOpen(SettingsPage.DnsProtocols) }
             SettingsMenuRow(
-                stringResource(Res.string.title_tor_settings),
-                stringResource(Res.string.summary_tor_settings),
-                art = SettingsArts.Tor,
-            ) { onOpen(SettingsPage.Tor) }
-            SettingsMenuRow(
                 stringResource(Res.string.title_ssh_settings),
                 stringResource(Res.string.summary_ssh_settings),
                 art = SettingsArts.Ssh,
@@ -439,31 +427,6 @@ private fun RootPage(
                 art = SettingsArts.Vpn,
             ) { onOpen(SettingsPage.Vpn) }
             SettingsMenuRow(
-                stringResource(Res.string.title_core_settings),
-                stringResource(Res.string.summary_core_settings),
-                art = SettingsArts.Core,
-            ) { onOpen(SettingsPage.Core) }
-            SettingsMenuRow(
-                stringResource(Res.string.title_mux_settings),
-                stringResource(Res.string.summary_mux_settings),
-                art = SettingsArts.Mux,
-            ) { onOpen(SettingsPage.Mux) }
-            SettingsMenuRow(
-                stringResource(Res.string.title_fragment_settings),
-                stringResource(Res.string.summary_fragment_settings),
-                art = SettingsArts.Fragment,
-            ) { onOpen(SettingsPage.Fragment) }
-            SettingsMenuRow(
-                stringResource(Res.string.title_singbox_settings),
-                stringResource(Res.string.summary_singbox_settings),
-                art = SettingsArts.SingBox,
-            ) { onOpen(SettingsPage.SingBox) }
-            SettingsMenuRow(
-                stringResource(Res.string.title_observatory_settings),
-                stringResource(Res.string.summary_observatory_settings),
-                art = SettingsArts.Observatory,
-            ) { onOpen(SettingsPage.Observatory) }
-            SettingsMenuRow(
                 stringResource(Res.string.title_advanced),
                 stringResource(Res.string.summary_advanced),
                 art = SettingsArts.Advanced,
@@ -474,11 +437,6 @@ private fun RootPage(
             stringResource(Res.string.settings_group_tools),
             modifier = Modifier.tourTargetInPage(TourTargets.SETTINGS_TOOLS),
         ) {
-            SettingsMenuRow(
-                stringResource(Res.string.map_title),
-                stringResource(Res.string.map_settings_sub),
-                art = SettingsArts.Map,
-            ) { onOpen(SettingsPage.Map) }
             SettingsMenuRow(
                 stringResource(Res.string.title_speedtest),
                 stringResource(Res.string.summary_speedtest),
@@ -492,34 +450,10 @@ private fun RootPage(
         ) {
             val fromPlay = platform.distribution == Distribution.PlayStore
             SettingsMenuRow(
-                stringResource(Res.string.update_check_title),
-                when {
-                    checking -> stringResource(Res.string.update_checking)
-                    fromPlay -> stringResource(Res.string.update_check_summary)
-                    else -> stringResource(Res.string.update_check_summary_github)
-                },
-                art = SettingsArts.Update,
-                trailing = if (checking) {
-                    { SettingsBusyIndicator() }
-                } else {
-                    null
-                },
-            ) { if (!checking) { checking = true; checkTrigger++ } }
-            SettingsMenuRow(
-                stringResource(if (fromPlay) Res.string.rate_title else Res.string.rate_title_github),
-                stringResource(if (fromPlay) Res.string.rate_summary else Res.string.rate_summary_github),
-                art = SettingsArts.Rate,
-            ) { platform.openStorePage() }
-            SettingsMenuRow(
                 stringResource(Res.string.privacy_title),
                 stringResource(Res.string.privacy_settings_sub),
                 art = SettingsArts.Privacy,
             ) { onOpen(SettingsPage.Privacy) }
-            SettingsMenuRow(
-                stringResource(Res.string.settings_about),
-                AppInfo.versionName,
-                art = SettingsArts.About,
-            ) { onAbout() }
         }
 
         ManualUpdateCheckHost(
@@ -656,13 +590,6 @@ private fun BentoRoot(
             tourKey = TourTargets.SETTINGS_ROUTING,
         ) { onOpen(SettingsPage.Routing) })
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "tor",
-            title = stringResource(Res.string.title_tor_settings),
-            summary = if (live) torLive else stringResource(Res.string.summary_tor_settings),
-            art = SettingsArts.Tor,
-            keywords = listOf("Snowflake", "obfs4", "meek", "webtunnel"),
-        ) { onOpen(SettingsPage.Tor) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "speed-test",
             title = stringResource(Res.string.title_speedtest),
             summary = stringResource(Res.string.summary_speedtest),
@@ -685,50 +612,17 @@ private fun BentoRoot(
             art = SettingsArts.PerApp,
         ) { onOpen(SettingsPage.PerApp) })
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "core",
-            title = stringResource(Res.string.title_core_settings),
-            summary = stringResource(Res.string.summary_core_settings),
-            art = SettingsArts.Core,
-            keywords = listOf(
-                stringResource(Res.string.title_pref_sniffing_enabled),
-                stringResource(Res.string.title_pref_route_only_enabled),
-                stringResource(Res.string.title_pref_remote_dns),
-                stringResource(Res.string.title_pref_domestic_dns),
-                stringResource(Res.string.dns_region_title),
-                stringResource(Res.string.title_pref_dns_hosts),
-                stringResource(Res.string.title_pref_enable_local_proxy),
-                stringResource(Res.string.title_pref_local_proxy_port),
-                stringResource(Res.string.title_pref_proxy_sharing_enabled),
-                stringResource(Res.string.title_pref_lan_auth),
-                stringResource(Res.string.title_pref_use_system_ca),
-                stringResource(Res.string.bento_proxy_auth_title),
-            ),
-        ) { onOpen(SettingsPage.Core) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "mode",
             title = stringResource(Res.string.title_mode_settings),
             summary = if (live) modeName else stringResource(Res.string.summary_mode_settings),
             art = SettingsArts.Mode,
         ) { onOpen(SettingsPage.Mode) })
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "sing-box",
-            title = stringResource(Res.string.title_singbox_settings),
-            summary = stringResource(Res.string.summary_singbox_settings),
-            art = SettingsArts.SingBox,
-        ) { onOpen(SettingsPage.SingBox) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "ssh",
             title = stringResource(Res.string.title_ssh_settings),
             summary = stringResource(Res.string.summary_ssh_settings),
             art = SettingsArts.Ssh,
         ) { onOpen(SettingsPage.Ssh) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "map",
-            title = stringResource(Res.string.map_title),
-            summary = stringResource(Res.string.map_settings_sub),
-            art = SettingsArts.Map,
-            tourKey = TourTargets.SETTINGS_TOOLS,
-        ) { onOpen(SettingsPage.Map) })
         onOpenVault?.let { open ->
             add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
                 key = "vault",
@@ -737,35 +631,6 @@ private fun BentoRoot(
                 art = SettingsArts.Vault,
             ) { open() })
         }
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "mux",
-            title = stringResource(Res.string.title_mux_settings),
-            summary = stringResource(Res.string.summary_mux_settings),
-            art = SettingsArts.Mux,
-            keywords = listOf(
-                stringResource(Res.string.title_pref_mux_enabled),
-                stringResource(Res.string.title_pref_mux_concurrency),
-                stringResource(Res.string.title_pref_mux_xudp_concurrency),
-            ),
-        ) { onOpen(SettingsPage.Mux) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "fragment",
-            title = stringResource(Res.string.title_fragment_settings),
-            summary = stringResource(Res.string.summary_fragment_settings),
-            art = SettingsArts.Fragment,
-            keywords = listOf(
-                stringResource(Res.string.title_pref_fragment_enabled),
-                stringResource(Res.string.title_pref_fragment_packets),
-                stringResource(Res.string.title_pref_fragment_length),
-                stringResource(Res.string.title_pref_fragment_interval),
-            ),
-        ) { onOpen(SettingsPage.Fragment) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "observatory",
-            title = stringResource(Res.string.title_observatory_settings),
-            summary = stringResource(Res.string.summary_observatory_settings),
-            art = SettingsArts.Observatory,
-        ) { onOpen(SettingsPage.Observatory) })
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "advanced",
             title = stringResource(Res.string.title_advanced),
@@ -789,13 +654,6 @@ private fun BentoRoot(
             art = SettingsArts.Assets,
             keywords = listOf(stringResource(Res.string.title_pref_geo_files_source)),
         ) { onOpen(SettingsPage.Assets) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "support",
-            title = stringResource(Res.string.support_title),
-            summary = stringResource(Res.string.support_subtitle),
-            art = SettingsArts.Support,
-            tourKey = TourTargets.SETTINGS_SUPPORT,
-        ) { onOpen(SettingsPage.Support) })
         if (hasAi) {
             add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
                 key = "ai",
@@ -822,34 +680,11 @@ private fun BentoRoot(
             ) { onReplaySetup() })
         }
         add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "update",
-            title = stringResource(Res.string.update_check_title),
-            summary = when {
-                checking -> stringResource(Res.string.update_checking)
-                fromPlay -> stringResource(Res.string.update_check_summary)
-                else -> stringResource(Res.string.update_check_summary_github)
-            },
-            art = SettingsArts.Update,
-        ) { if (!checking) { checking = true; checkTrigger++ } })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "rate",
-            title = stringResource(if (fromPlay) Res.string.rate_title else Res.string.rate_title_github),
-            summary = stringResource(if (fromPlay) Res.string.rate_summary else Res.string.rate_summary_github),
-            art = SettingsArts.Rate,
-        ) { platform.openStorePage() })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
             key = "privacy",
             title = stringResource(Res.string.privacy_title),
             summary = stringResource(Res.string.privacy_settings_sub),
             art = SettingsArts.Privacy,
         ) { onOpen(SettingsPage.Privacy) })
-        add(dev.cluvex.zedsecure.ui.bento.BentoHubEntry(
-            key = "about",
-            title = stringResource(Res.string.settings_about),
-            summary = AppInfo.versionName,
-            art = SettingsArts.About,
-            tourKey = TourTargets.SETTINGS_ABOUT,
-        ) { onAbout() })
     }
     dev.cluvex.zedsecure.ui.bento.BentoHub(
         entries = entries,

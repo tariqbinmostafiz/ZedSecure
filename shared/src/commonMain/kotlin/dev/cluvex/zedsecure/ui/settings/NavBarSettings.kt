@@ -91,7 +91,7 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 fun availableNavTabs(perApp: Boolean): Set<NavTab> =
-    NavTab.entries.filter { it != NavTab.Apps || perApp }.toSet()
+    NavTab.entries.filter { it !in NavTabs.HIDDEN && (it != NavTab.Apps || perApp) }.toSet()
 
 @Composable
 fun navTabsSummary(settings: AppSettings): String {

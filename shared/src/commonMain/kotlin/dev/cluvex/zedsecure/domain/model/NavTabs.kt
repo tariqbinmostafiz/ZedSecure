@@ -5,7 +5,9 @@ enum class NavTab { Home, Servers, Subscriptions, Vault, SpeedTest, Map, Logs, R
 object NavTabs {
     const val MAX = 5
 
-    val DEFAULT: List<NavTab> = listOf(NavTab.Home, NavTab.Servers, NavTab.Vault, NavTab.Settings)
+    val DEFAULT: List<NavTab> = listOf(NavTab.Home, NavTab.Servers, NavTab.Apps, NavTab.Logs, NavTab.Settings)
+
+    val HIDDEN: Set<NavTab> = setOf(NavTab.Subscriptions, NavTab.Vault, NavTab.Map)
 
     val FIXED: Set<NavTab> = setOf(NavTab.Home, NavTab.Settings)
 

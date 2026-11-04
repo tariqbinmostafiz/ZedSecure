@@ -95,6 +95,7 @@ fun MainScaffold(
     val bento = settings.appDesign == dev.cluvex.zedsecure.domain.model.AppDesign.Bento
     val tabs = androidx.compose.runtime.remember(settings.navTabs, platform.supportsPerAppProxy) {
         val available = dev.cluvex.zedsecure.domain.model.NavTab.entries
+            .filter { it !in dev.cluvex.zedsecure.domain.model.NavTabs.HIDDEN }
             .filter { it != dev.cluvex.zedsecure.domain.model.NavTab.Apps || platform.supportsPerAppProxy }
             .toSet()
         dev.cluvex.zedsecure.domain.model.NavTabs.parse(settings.navTabs, available).map { TopDestination.of(it) }
@@ -301,7 +302,7 @@ fun MainScaffold(
                         current = if (activeProfile?.isLocked == true) TopDestination.Vault
                         else TopDestination.Servers
                     },
-                    onSecretUnlocked = { spaceUnlocked = true },
+                    onSecretUnlocked = { },
                     bentoActive = activeProfile?.let { p ->
                         dev.cluvex.zedsecure.ui.bento.BentoActiveServer(
                             name = homeName ?: p.name,
@@ -451,22 +452,10 @@ fun MainScaffold(
                         replaySetup = true
                         setupDone = false
                     },
-                    onOpenVault = if (TopDestination.Vault in tabs) null else ({ current = TopDestination.Vault }),
+                    onOpenVault = null,
 
                     mtuHint = mtuHint,
-                    ai = aiBridge?.let { bridge ->
-                        dev.cluvex.zedsecure.ui.settings.AiSection(
-                            settings = settings.ai,
-                            onUpdate = { next -> onUpdateSettings { it.copy(ai = next) } },
-                            bridge = bridge,
-                            onOpenUrl = { url -> platform.openUri(url) },
-
-                            languageName = languageEnglishName(settings.language),
-                            languageNative = languageNativeName(settings.language),
-                            platform = "Android",
-                            appVersion = appVersion,
-                        )
-                    },
+                    ai = null,
                 )
             }
             }
