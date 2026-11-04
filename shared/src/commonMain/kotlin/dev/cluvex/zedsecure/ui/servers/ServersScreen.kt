@@ -2247,6 +2247,9 @@ private fun AddServerSheet(
             Option(Res.drawable.ic_add_link, Res.string.servers_add_scan_image, onScanQrImage)
             OptionGroup(Res.string.add_group_tunnels)
             Option(Res.drawable.ic_speed, Res.string.ssh_add_title, onSsh)
+
+            OptionGroup(Res.string.add_group_vpn)
+            Option(Res.drawable.ic_lock, Res.string.openconnect_add_title, onOpenConnect)
         }
     }
 }
