@@ -52,7 +52,7 @@ case "$TARGET" in
     cp "$(fetch zedcore zedcore.aar)" "$ROOT/app/libs/zedcore.aar"
     for abi in arm64-v8a armeabi-v7a x86_64; do
       mkdir -p "$jni/$abi"
-      for core in tor snispoof hev; do
+      for core in hev; do
         unzip -q -o "$(fetch "$core" "$core-android-$abi.zip")" -d "$jni/$abi"
       done
     done
