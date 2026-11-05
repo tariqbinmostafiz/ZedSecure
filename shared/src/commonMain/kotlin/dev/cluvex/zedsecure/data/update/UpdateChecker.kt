@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 object PlayStore {
-    const val PACKAGE = "com.zedsecure.vpn"
+    const val PACKAGE = "com.shifat.zedtunnel"
 
     const val MARKET_URL = "market://details?id=$PACKAGE"
     const val WEB_URL = "https://play.google.com/store/apps/details?id=$PACKAGE"
