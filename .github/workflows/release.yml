@@ -1,4 +1,5 @@
-name: release
+
+name: zedtunnel-release
 
 on:
   push:
@@ -12,13 +13,21 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       name: ${{ steps.v.outputs.name }}
+
     steps:
       - uses: actions/checkout@v7
-      - name: The tag matches the version
+
+      - name: Verify the ZedTunnel release tag
         id: v
         run: |
+          set -e
           v=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)
-          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME does not match zedsecure.versionName=$v"; exit 1; }
+
+          [ "v$v" = "$GITHUB_REF_NAME" ] || {
+            echo "::error::Tag $GITHUB_REF_NAME does not match zedsecure.versionName=$v"
+            exit 1
+          }
+
           echo "name=$v" >> "$GITHUB_OUTPUT"
 
   android:
@@ -34,21 +43,65 @@ jobs:
   publish:
     needs: [version, android, desktop]
     runs-on: ubuntu-24.04
+
     steps:
-      - uses: actions/download-artifact@v8
-        with: { name: android-apks, path: dist }
-      - uses: actions/download-artifact@v8
-        with: { pattern: "desktop-*", path: dist, merge-multiple: true }
-      - name: One draft with every platform
+      - name: Download Android APKs
+        uses: actions/download-artifact@v8
+        with:
+          name: android-apks
+          path: dist
+
+      - name: Download all ZedTunnel desktop builds
+        uses: actions/download-artifact@v8
+        with:
+          pattern: "zedtunnel-desktop-*"
+          path: dist
+          merge-multiple: true
+
+      - name: Verify all release files
+        run: |
+          set -e
+
+          V='${{ needs.version.outputs.name }}'
+
+          echo "===== RELEASE FILES ====="
+          ls -lh dist
+
+          required_files=(
+            "ZedTunnel-$V-arm64-v8a.apk"
+            "ZedTunnel-$V-universal.apk"
+            "ZedTunnel-$V-armeabi-v7a.apk"
+            "ZedTunnel-$V-x86_64.apk"
+            "ZedTunnel-$V-amd64.deb"
+            "ZedTunnel-$V-x86_64.rpm"
+            "ZedTunnel-$V-linux-x86_64.tar.gz"
+            "ZedTunnel-$V-x86_64.AppImage"
+            "ZedTunnel-$V-x86_64.msi"
+            "ZedTunnel-$V-windows-x86_64.zip"
+            "ZedTunnel-$V-macos-arm64.dmg"
+            "ZedTunnel-$V-macos-x86_64.dmg"
+          )
+
+          for f in "${required_files[@]}"; do
+            [ -f "dist/$f" ] || {
+              echo "::error::Required release file is missing: $f"
+              exit 1
+            }
+            echo "OK: $f"
+          done
+
+          echo "All required ZedTunnel release files are present."
+
+      - name: Publish ZedTunnel draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
+
           V='${{ needs.version.outputs.name }}'
-          ls -l dist
-          for f in "ZedSecure-$V-arm64-v8a.apk" "ZedSecure-$V-universal.apk" "ZedSecure-$V-x86_64.msi" \
-                   "ZedSecure-$V-linux-x86_64.tar.gz" "ZedSecure-$V-macos-arm64.dmg" "ZedSecure-$V-macos-x86_64.dmg"; do
-            [ -f "dist/$f" ] || { echo "::error::$f is missing"; exit 1; }
-          done
-          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
-            --title "ZedSecure $V" --notes "" --draft
+
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ZedTunnel $V" \
+            --notes "ZedTunnel $V release." \
+            --draft
