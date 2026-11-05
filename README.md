@@ -1,98 +1,85 @@
 <p align="center">
-  <img src="docs/assets/icon.png" width="104" alt="ZedSecure">
+  <img src="docs/assets/icon.png" width="104" alt="ZedTunnel">
 </p>
 
-<h1 align="center">ZedSecure</h1>
+<h1 align="center">ZedTunnel</h1>
 
-<p align="center">Every way through, in one app.</p>
+<p align="center">A personal SSH + OpenVPN + OpenConnect client, trimmed down from ZedSecure.</p>
 
 <p align="center">
-  <a href="https://github.com/CluvexStudio/ZedSecure/releases/latest"><img src="https://img.shields.io/github/v/release/CluvexStudio/ZedSecure?style=flat-square&color=C7F24E&labelColor=15170B&label=release" alt="Latest release"></a>
-  <a href="https://play.google.com/store/apps/details?id=com.zedsecure.vpn"><img src="https://img.shields.io/badge/Google%20Play-install-C7F24E?style=flat-square&labelColor=15170B" alt="Google Play"></a>
-  <img src="https://img.shields.io/badge/Android%20%C2%B7%20Linux%20%C2%B7%20Windows%20%C2%B7%20macOS-C7F24E?style=flat-square&labelColor=15170B" alt="Android, Linux, Windows, macOS">
+  <img src="https://img.shields.io/badge/Android-C7F24E?style=flat-square&labelColor=15170B" alt="Android">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-C7F24E?style=flat-square&labelColor=15170B" alt="AGPL-3.0"></a>
 </p>
 
-<p align="center"><b>English</b> · <a href="README.fa.md">فارسی</a></p>
+## What is ZedTunnel?
 
-## What is ZedSecure?
+ZedTunnel is a private fork of [ZedSecure](https://github.com/CluvexStudio/ZedSecure), built for one
+person's own day-to-day use rather than general release. It keeps the three connection methods that
+are actually used — **SSH with a custom payload injector**, **OpenVPN** (`.ovpn` import) and
+**OpenConnect** — and drops the rest of the interface: no subscriptions, vault, map, AI assistant,
+Tor, or extra protocol screens. Android only; the Linux/Windows/macOS desktop targets are untouched
+by this fork and are not built or tested here.
 
-ZedSecure is a VPN and proxy client for Android, Linux, Windows and macOS that ships with more than one
-engine. When one route is blocked, the next one is already installed: Xray and sing-box for the
-usual protocols, Psiphon and Tor for when nothing else connects, DNS tunnels for networks that let
-little more than DNS through, and WireGuard, AmneziaWG, OpenConnect and IKEv2 for servers you
-already run. Engines can be chained through each other, and one tap tests every server and moves
-the connection to the fastest one.
+> This is not a general-purpose release. It carries the parent project's AGPL-3.0 licence and
+> credits below, and anyone is free to use the source the same way — but the choices on this page
+> (what's kept, what's hidden, the app ID) were made for one person's setup, not for a wide audience.
 
-<p align="center">
-  <img src="docs/assets/showcase.png" width="100%" alt="ZedSecure: home, servers and settings">
-</p>
+## What's kept
 
-## Engines
-
-| Engine | Carries |
+| | |
 |---|---|
-| Xray | VLESS with Reality, Vision and XHTTP, VMess, Trojan, Shadowsocks, Hysteria2, WireGuard, AmneziaWG |
-| sing-box | TUIC, Naive, AnyTLS, ShadowTLS, OpenVPN `.ovpn` files, and plain sing-box JSON |
-| Psiphon | Psiphon's own network; no server of yours needed |
-| Tor | obfs4, Snowflake and Conjure bridges |
-| DNS tunnels | DNSTT, VayDNS and MasterDNS, over UDP, TCP, DoT or DoH |
-| OpenConnect | Cisco AnyConnect and compatible gateways |
-| IKEv2 | the IPsec client built into Android |
-| SSH | on its own, or through any of the above |
+| **SSH** | Password or key auth, host-key pinning (TOFU with a saved fingerprint), and a custom payload engine: send a hand-written HTTP-style request before the SSH handshake, optionally through an HTTP proxy and/or wrapped in TLS with a chosen SNI. Placeholders: `[host]` `[port]` `[host_port]` `[method]` `[protocol]` `[crlf]` `[cr]` `[lf]` `[split]` `[split=ms]`. |
+| **OpenVPN** | `.ovpn` import, carried by the bundled sing-box engine as before. |
+| **OpenConnect** | Cisco AnyConnect and compatible gateways. |
+| **VPN basics** | Per-app routing, Bypass LAN, kill switch, DNS and MTU settings, auto-reconnect, network-change handling, foreground service, live logs, settings export/import. |
 
-Android has all of them. Linux, Windows and macOS carry Xray, sing-box, the DNS tunnels and SSH.
+## What's new in this fork
 
-## Features
+- **Payload injection for SSH** — direct-to-host or through-a-proxy, with optional TLS+SNI, a
+  `[split]` tag for timed, multi-part sends, configurable handling of the server's HTTP reply, and
+  host-key pinning. This did not exist in upstream ZedSecure's SSH mode.
+- **Data usage tab** — daily, weekly and monthly charts of tunnel traffic, kept on the device only,
+  in the same Material 3 style as the rest of the app.
 
-- Imports share links, subscriptions, Xray and sing-box JSON, `.ovpn`, Amnezia `vpn://` and QR codes
-- Auto-select keeps the tunnel on the fastest server and fails over on its own
-- Chains in both directions, for example Xray over Tor or Tor over Xray
-- Per-app routing, a geoip/geosite rule editor, and SNI spoofing on rooted devices
-- Vault: share a config as a `.zsx` file that connects without showing it, with an optional password and expiry date
-- Speed test, MTU finder, DNS resolver scanner and a live log
-- Material 3 Expressive, light and dark, in English, Persian, Russian and Chinese
+## What's hidden or removed
 
-## Download
+Removed from the UI (the add-server menu, tabs and settings): Xray/VLESS/VMess/Trojan/Shadowsocks/
+Hysteria, WireGuard/AmneziaWG, Tor, Psiphon, IKEv2, DNS tunnels (DNSTT/VayDNS/MasterDNS), SNI spoof,
+subscriptions, the config vault, the server map, the AI assistant, easter eggs, and the
+support/update/rate/about screens.
 
-**Android:** [Google Play](https://play.google.com/store/apps/details?id=com.zedsecure.vpn), or the
-APK for your device from [Releases](https://github.com/CluvexStudio/ZedSecure/releases/latest)
-(`arm64-v8a` for almost every phone, `armeabi-v7a` for older ones).
-
-**Linux:** `.deb`, `.rpm`, `.AppImage` or `.tar.gz` from Releases. On Arch Linux, the community
-package [`zedsecure-bin`](https://aur.archlinux.org/packages/zedsecure-bin) is in the AUR:
-`yay -S zedsecure-bin`. On NixOS, `nix run github:CluvexStudio/ZedSecure`.
-
-**Windows:** the `.msi` installer, or the portable `.zip`.
-
-**macOS:** the `.dmg` for Apple Silicon or for Intel. The app is not notarized, so open it the
-first time with right-click, then Open.
+Most of this is a UI change, not a binary one — the shared multi-protocol engine
+([ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores)) is still compiled into the app
+the same way it is upstream, just unreachable from the interface. The one part that is actually
+**not shipped** any more is Tor and the SNI-spoof engine: their native libraries and Tor's bundled
+GeoIP data are left out of the Android build, which is roughly 24 MB off the APK.
 
 ## Building
 
-```sh
-./tools/get-cores.sh android     # or linux, windows, macos-arm64, macos-x86_64
-./gradlew :app:assembleRelease   # three APKs, one per ABI
-./gradlew :desktop:packageDeb    # or packageRpm, packageMsi, packageDmg
-```
+Package ID: `com.shifat.zedtunnel`. Signing key and CI are set up as a private GitHub Actions
+workflow in this repository (`android-release.yml`); there is no public release channel.
 
-Every engine is built in [ZedSecure-Cores](https://github.com/CluvexStudio/ZedSecure-Cores), one
-workflow per engine, from the forks and exact commits in its `pins.txt`. [`tools/cores.txt`](tools/cores.txt)
-names the build each release takes. Pushing a `v*` tag builds Android and every desktop system in CI
-and puts them all in one release; Android and desktop share one version.
+```sh
+./tools/get-cores.sh android
+./gradlew :app:assembleRelease
+```
 
 ## Credits
 
-The DNSTT and VayDNS modes of the DNS tunnel are built with the
-[VayDNS](https://github.com/net2share/vaydns) library, a fork of [dnstt](https://www.bamsoftware.com/software/dnstt/). The MasterDNS mode is a separate engine, credited below.
-
-The main ideas of the tunnel come from [SlipNet](https://github.com/anonvector/SlipNet) by anonvector: DNS over plain TCP (VayDNS does not have this by itself), the fan-out and round-robin resolver modes with spread count, the DNS pool that picks the fastest resolvers on each connect, the global resolver override and prevent-DNS-fallback settings, and the design and text of the DNS and SSH settings.
-
-Versions before 3.0.9 used SlipNet's own engine, including its TCP transport, inside the core. Since 3.0.9, the engine is `zeddns`, written for this app. It has the same features, but with its own code.
-
-ZedSecure also stands on [Xray-core](https://github.com/XTLS/Xray-core), [sing-box](https://github.com/SagerNet/sing-box), [Psiphon](https://github.com/Psiphon-Labs/psiphon-tunnel-core), [Tor](https://www.torproject.org/), [MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN), [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go), [OpenConnect](https://www.infradead.org/openconnect/), [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel), and [zeptun](https://github.com/Noisemux/zeptun). Their licences are in [NOTICE](NOTICE).
+ZedTunnel is a fork of [ZedSecure](https://github.com/CluvexStudio/ZedSecure) by CluvexStudio, and
+keeps its full dependency list even where this fork's UI does not expose every engine, since the
+same shared binaries are still built in: [Xray-core](https://github.com/XTLS/Xray-core),
+[sing-box](https://github.com/SagerNet/sing-box), [Psiphon](https://github.com/Psiphon-Labs/psiphon-tunnel-core),
+[MasterDnsVPN](https://github.com/masterking32/MasterDnsVPN), [AmneziaWG](https://github.com/amnezia-vpn/amneziawg-go),
+[OpenConnect](https://www.infradead.org/openconnect/), [hev-socks5-tunnel](https://github.com/heiher/hev-socks5-tunnel),
+[zeptun](https://github.com/Noisemux/zeptun), [JSch (mwiede fork)](https://github.com/mwiede/jsch)
+for the SSH layer, and the DNS-tunnel credits in upstream's README (SlipNet, VayDNS, dnstt) for code
+that may still be present in the shared engine binary even though this fork's UI does not use it.
+Tor and SNI-spoof are the one pair of engines actually removed from this build, so Tor's own credit
+line is dropped here.
 
 ## License
 
-[AGPL-3.0](LICENSE). The core also links sing-box, Psiphon and sing-openvpn, which are GPL-3.0;
-section 13 of GPL-3.0 allows combining them with AGPL-3.0 code, and each keeps its own licence.
+[AGPL-3.0](LICENSE), inherited from upstream ZedSecure. The shared engine also links sing-box,
+Psiphon and sing-openvpn, which are GPL-3.0; section 13 of GPL-3.0 allows combining them with
+AGPL-3.0 code, and each keeps its own licence. See [NOTICE](NOTICE).
