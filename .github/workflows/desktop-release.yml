@@ -1,4 +1,5 @@
-name: desktop-release
+
+name: zedtunnel-desktop-release
 
 on:
   workflow_dispatch:
@@ -48,60 +49,72 @@ jobs:
       - name: Build .deb, .rpm and the application directory
         run: ./gradlew --warning-mode all :desktop:packageDeb :desktop:packageRpm :desktop:createDistributable
 
-      - name: Assemble the release files
+      - name: Assemble the ZedTunnel release files
         id: pack
         run: |
           set -e
           V='${{ steps.v.outputs.name }}'
           mkdir -p dist
-          cp desktop/build/compose/binaries/main/deb/*.deb "dist/ZedSecure-$V-amd64.deb"
-          cp desktop/build/compose/binaries/main/rpm/*.rpm "dist/ZedSecure-$V-x86_64.rpm"
+
+          cp desktop/build/compose/binaries/main/deb/*.deb "dist/ZedTunnel-$V-amd64.deb"
+          cp desktop/build/compose/binaries/main/rpm/*.rpm "dist/ZedTunnel-$V-x86_64.rpm"
 
           APP=$(ls -d desktop/build/compose/binaries/main/app/*/ | head -1)
 
-          tar -C "$(dirname "$APP")" -czf "dist/ZedSecure-$V-linux-x86_64.tar.gz" "$(basename "$APP")"
+          tar -C "$(dirname "$APP")" -czf "dist/ZedTunnel-$V-linux-x86_64.tar.gz" "$(basename "$APP")"
 
           rm -rf AppDir && mkdir -p AppDir/usr
           cp -a "$APP." AppDir/usr/
+
           BIN=$(find AppDir/usr/bin -maxdepth 1 -type f -executable | head -1)
-          cp desktop/icons/zedsecure.png AppDir/zedsecure.png
-          cat > AppDir/zedsecure.desktop <<EOF
+
+          cp desktop/icons/zedsecure.png AppDir/zedtunnel.png
+
+          cat > AppDir/zedtunnel.desktop <<EOF
           [Desktop Entry]
           Type=Application
-          Name=ZedSecure
+          Name=ZedTunnel
           Exec=$(basename "$BIN")
-          Icon=zedsecure
+          Icon=zedtunnel
           Categories=Network;
           Terminal=false
           EOF
+
           cat > AppDir/AppRun <<EOF
           #!/bin/sh
           HERE=\$(dirname "\$(readlink -f "\$0")")
           exec "\$HERE/usr/bin/$(basename "$BIN")" "\$@"
           EOF
-          chmod +x AppDir/AppRun
-          ARCH=x86_64 appimagetool --no-appstream AppDir "dist/ZedSecure-$V-x86_64.AppImage"
 
-          ( cd dist && sha256sum ZedSecure-* > SHA256SUMS-linux.txt )
+          chmod +x AppDir/AppRun
+
+          ARCH=x86_64 appimagetool --no-appstream AppDir "dist/ZedTunnel-$V-x86_64.AppImage"
+
+          ( cd dist && sha256sum ZedTunnel-* > SHA256SUMS-linux.txt )
+
           ls -lh dist
 
-      - name: The AppImage and the tarball start
+      - name: Verify the AppImage and tarball
         run: |
           set -e
           V='${{ steps.v.outputs.name }}'
-          got=$(APPIMAGE_EXTRACT_AND_RUN=1 "dist/ZedSecure-$V-x86_64.AppImage" --version)
+
+          got=$(APPIMAGE_EXTRACT_AND_RUN=1 "dist/ZedTunnel-$V-x86_64.AppImage" --version)
           echo "AppImage: $got"
-          [ "$got" = "ZedSecure $V" ]
-          rm -rf /tmp/zs-tar && mkdir -p /tmp/zs-tar
-          tar -xzf "dist/ZedSecure-$V-linux-x86_64.tar.gz" -C /tmp/zs-tar
-          bin=$(find /tmp/zs-tar -path '*/bin/*' -type f -perm -u+x | head -1)
+          [ "$got" = "ZedTunnel $V" ]
+
+          rm -rf /tmp/zt-tar && mkdir -p /tmp/zt-tar
+          tar -xzf "dist/ZedTunnel-$V-linux-x86_64.tar.gz" -C /tmp/zt-tar
+
+          bin=$(find /tmp/zt-tar -path '*/bin/*' -type f -perm -u+x | head -1)
           got=$("$bin" --version)
+
           echo "tar.gz: $got"
-          [ "$got" = "ZedSecure $V" ]
+          [ "$got" = "ZedTunnel $V" ]
 
       - uses: actions/upload-artifact@v7
         with:
-          name: desktop-linux
+          name: zedtunnel-desktop-linux
           path: dist/*
           retention-days: 14
 
@@ -140,21 +153,26 @@ jobs:
       - name: Build the installer and the portable build
         run: ./gradlew --warning-mode all :desktop:packageMsi :desktop:createDistributable
 
-      - name: Assemble the release files
+      - name: Assemble the ZedTunnel release files
         shell: bash
         run: |
           set -e
           V='${{ steps.v.outputs.name }}'
           mkdir -p dist
-          cp desktop/build/compose/binaries/main/msi/*.msi "dist/ZedSecure-$V-x86_64.msi"
+
+          cp desktop/build/compose/binaries/main/msi/*.msi "dist/ZedTunnel-$V-x86_64.msi"
+
           app=$(ls -d desktop/build/compose/binaries/main/app/*/ | head -1)
-          ( cd "$(dirname "$app")" && 7z a -tzip -mx=9 "$OLDPWD/dist/ZedSecure-$V-windows-x86_64.zip" "$(basename "$app")" >/dev/null )
-          ( cd dist && sha256sum ZedSecure-* > SHA256SUMS-windows.txt )
+
+          ( cd "$(dirname "$app")" && 7z a -tzip -mx=9 "$OLDPWD/dist/ZedTunnel-$V-windows-x86_64.zip" "$(basename "$app")" >/dev/null )
+
+          ( cd dist && sha256sum ZedTunnel-* > SHA256SUMS-windows.txt )
+
           ls -l dist
 
       - uses: actions/upload-artifact@v7
         with:
-          name: desktop-windows
+          name: zedtunnel-desktop-windows
           path: dist/*
           retention-days: 14
 
@@ -165,8 +183,10 @@ jobs:
         include:
           - { runner: macos-26, arch: arm64 }
           - { runner: macos-26-intel, arch: x86_64 }
+
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -196,17 +216,20 @@ jobs:
       - name: Build the disk image
         run: ./gradlew --warning-mode all :desktop:packageDmg
 
-      - name: Assemble the release files
+      - name: Assemble the ZedTunnel release files
         run: |
           set -e
           V='${{ steps.v.outputs.name }}'
           mkdir -p dist
-          cp desktop/build/compose/binaries/main/dmg/*.dmg "dist/ZedSecure-$V-macos-${{ matrix.arch }}.dmg"
-          ( cd dist && shasum -a 256 ZedSecure-* > "SHA256SUMS-macos-${{ matrix.arch }}.txt" )
+
+          cp desktop/build/compose/binaries/main/dmg/*.dmg "dist/ZedTunnel-$V-macos-${{ matrix.arch }}.dmg"
+
+          ( cd dist && shasum -a 256 ZedTunnel-* > "SHA256SUMS-macos-${{ matrix.arch }}.txt" )
+
           ls -l dist
 
       - uses: actions/upload-artifact@v7
         with:
-          name: desktop-macos-${{ matrix.arch }}
+          name: zedtunnel-desktop-macos-${{ matrix.arch }}
           path: dist/*
           retention-days: 14
