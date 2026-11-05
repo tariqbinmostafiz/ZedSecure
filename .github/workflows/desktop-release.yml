@@ -1,0 +1,212 @@
+name: desktop-release
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Read the version
+        id: v
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Tools for .rpm and .AppImage
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rpm fakeroot file desktop-file-utils
+          curl -sSLo /usr/local/bin/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /usr/local/bin/appimagetool
+
+      - name: Take every engine from its own build
+        run: ./tools/get-cores.sh linux
+
+      - name: Check the engines the desktop launches are all here
+        run: |
+          set -e
+          dest=desktop/src/main/resources/bin/linux
+          missing=
+          for f in xray libcronet.so hev-socks5-tunnel zeddns masterdns psiphon tor/files.txt tor/tor tor/pt/lyrebird tor/bridges_default.lst; do
+            [ -e "$dest/$f" ] || missing="$missing $f"
+          done
+          [ -z "$missing" ] || { echo "::error::not bundled:$missing"; exit 1; }
+          for f in psiphon-client masterdns-client snispoof snowflake-client; do
+            [ ! -e "$dest/$f" ] || { echo "::error::bundled but never launched: $f"; exit 1; }
+          done
+
+      - name: Build .deb, .rpm and the application directory
+        run: ./gradlew --warning-mode all :desktop:packageDeb :desktop:packageRpm :desktop:createDistributable
+
+      - name: Assemble the release files
+        id: pack
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          mkdir -p dist
+          cp desktop/build/compose/binaries/main/deb/*.deb "dist/ZedTunnel-$V-amd64.deb"
+          cp desktop/build/compose/binaries/main/rpm/*.rpm "dist/ZedTunnel-$V-x86_64.rpm"
+
+          APP=$(ls -d desktop/build/compose/binaries/main/app/*/ | head -1)
+
+          tar -C "$(dirname "$APP")" -czf "dist/ZedTunnel-$V-linux-x86_64.tar.gz" "$(basename "$APP")"
+
+          rm -rf AppDir && mkdir -p AppDir/usr
+          cp -a "$APP." AppDir/usr/
+          BIN=$(find AppDir/usr/bin -maxdepth 1 -type f -executable | head -1)
+          cp desktop/icons/zedsecure.png AppDir/zedtunnel.png
+          cat > AppDir/zedtunnel.desktop <<EOF
+          [Desktop Entry]
+          Type=Application
+          Name=ZedTunnel
+          Exec=$(basename "$BIN")
+          Icon=zedtunnel
+          Categories=Network;
+          Terminal=false
+          EOF
+          cat > AppDir/AppRun <<EOF
+          #!/bin/sh
+          HERE=\$(dirname "\$(readlink -f "\$0")")
+          exec "\$HERE/usr/bin/$(basename "$BIN")" "\$@"
+          EOF
+          chmod +x AppDir/AppRun
+          ARCH=x86_64 appimagetool --no-appstream AppDir "dist/ZedTunnel-$V-x86_64.AppImage"
+
+          ( cd dist && sha256sum ZedTunnel-* > SHA256SUMS-linux.txt )
+          ls -lh dist
+
+      - name: The AppImage and the tarball start
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          got=$(APPIMAGE_EXTRACT_AND_RUN=1 "dist/ZedTunnel-$V-x86_64.AppImage" --version)
+          echo "AppImage: $got"
+          [ "$got" = "ZedTunnel $V" ]
+          rm -rf /tmp/zs-tar && mkdir -p /tmp/zs-tar
+          tar -xzf "dist/ZedTunnel-$V-linux-x86_64.tar.gz" -C /tmp/zs-tar
+          bin=$(find /tmp/zs-tar -path '*/bin/*' -type f -perm -u+x | head -1)
+          got=$("$bin" --version)
+          echo "tar.gz: $got"
+          [ "$got" = "ZedTunnel $V" ]
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-linux
+          path: dist/*
+          retention-days: 14
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Read the version
+        id: v
+        shell: bash
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Take every engine from its own build
+        shell: bash
+        run: ./tools/get-cores.sh windows
+
+      - name: Check the engines the desktop launches are all here
+        shell: bash
+        run: |
+          set -e
+          dest=desktop/src/main/resources/bin/windows
+          missing=
+          for f in xray.exe libcronet.dll zeptun.exe wintun.dll hev-socks5-tunnel.exe msys-2.0.dll zeddns.exe masterdns.exe psiphon.exe openconnect/files.txt tor/files.txt tor/tor.exe tor/pt/lyrebird.exe tor/bridges_default.lst; do
+            [ -e "$dest/$f" ] || missing="$missing $f"
+          done
+          [ -z "$missing" ] || { echo "::error::not bundled:$missing"; exit 1; }
+          for f in psiphon-client masterdns-client snispoof snowflake-client; do
+            [ ! -e "$dest/$f" ] || { echo "::error::bundled but never launched: $f"; exit 1; }
+          done
+
+      - name: Build the installer and the portable build
+        run: ./gradlew --warning-mode all :desktop:packageMsi :desktop:createDistributable
+
+      - name: Assemble the release files
+        shell: bash
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          mkdir -p dist
+          cp desktop/build/compose/binaries/main/msi/*.msi "dist/ZedTunnel-$V-x86_64.msi"
+          app=$(ls -d desktop/build/compose/binaries/main/app/*/ | head -1)
+          ( cd "$(dirname "$app")" && 7z a -tzip -mx=9 "$OLDPWD/dist/ZedTunnel-$V-windows-x86_64.zip" "$(basename "$app")" >/dev/null )
+          ( cd dist && sha256sum ZedTunnel-* > SHA256SUMS-windows.txt )
+          ls -l dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-windows
+          path: dist/*
+          retention-days: 14
+
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-26, arch: arm64 }
+          - { runner: macos-26-intel, arch: x86_64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Read the version
+        id: v
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Take every engine from its own build
+        run: ./tools/get-cores.sh macos-${{ matrix.arch }}
+
+      - name: Check the engines the desktop launches are all here
+        run: |
+          set -e
+          dest=desktop/src/main/resources/bin/macos
+          missing=
+          for f in xray zeptun hev-socks5-tunnel zeddns masterdns psiphon tor/files.txt tor/tor tor/pt/lyrebird tor/bridges_default.lst; do
+            [ -e "$dest/$f" ] || missing="$missing $f"
+          done
+          [ -z "$missing" ] || { echo "::error::not bundled:$missing"; exit 1; }
+          for f in psiphon-client masterdns-client snispoof snowflake-client; do
+            [ ! -e "$dest/$f" ] || { echo "::error::bundled but never launched: $f"; exit 1; }
+          done
+
+      - name: Build the disk image
+        run: ./gradlew --warning-mode all :desktop:packageDmg
+
+      - name: Assemble the release files
+        run: |
+          set -e
+          V='${{ steps.v.outputs.name }}'
+          mkdir -p dist
+          cp desktop/build/compose/binaries/main/dmg/*.dmg "dist/ZedTunnel-$V-macos-${{ matrix.arch }}.dmg"
+          ( cd dist && shasum -a 256 ZedTunnel-* > "SHA256SUMS-macos-${{ matrix.arch }}.txt" )
+          ls -l dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-macos-${{ matrix.arch }}
+          path: dist/*
+          retention-days: 14

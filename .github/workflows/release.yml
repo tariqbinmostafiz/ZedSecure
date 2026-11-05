@@ -1,0 +1,54 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      name: ${{ steps.v.outputs.name }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: The tag matches the version
+        id: v
+        run: |
+          v=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME does not match zedsecure.versionName=$v"; exit 1; }
+          echo "name=$v" >> "$GITHUB_OUTPUT"
+
+  android:
+    needs: version
+    uses: ./.github/workflows/android-release.yml
+    secrets: inherit
+
+  desktop:
+    needs: version
+    uses: ./.github/workflows/desktop-release.yml
+    secrets: inherit
+
+  publish:
+    needs: [version, android, desktop]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with: { name: android-apks, path: dist }
+      - uses: actions/download-artifact@v8
+        with: { pattern: "desktop-*", path: dist, merge-multiple: true }
+      - name: One draft with every platform
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          V='${{ needs.version.outputs.name }}'
+          ls -l dist
+          for f in "ZedTunnel-$V-arm64-v8a.apk" "ZedTunnel-$V-universal.apk" "ZedTunnel-$V-x86_64.msi" \
+                   "ZedTunnel-$V-linux-x86_64.tar.gz" "ZedTunnel-$V-macos-arm64.dmg" "ZedTunnel-$V-macos-x86_64.dmg"; do
+            [ -f "dist/$f" ] || { echo "::error::$f is missing"; exit 1; }
+          done
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
+            --title "ZedTunnel $V" --notes "" --draft

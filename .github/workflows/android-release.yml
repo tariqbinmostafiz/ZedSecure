@@ -1,0 +1,123 @@
+name: android-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      signing_key:
+        description: "main = upstream CluvexStudio release key (not available in this fork); upload = this fork's own key"
+        type: choice
+        default: main
+        options: [main, upload]
+  workflow_call:
+    inputs:
+      signing_key:
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Read the version
+        id: v
+        run: echo "name=$(grep '^zedsecure.versionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Take every engine from its own build
+        run: ./tools/get-cores.sh android
+
+      - name: Drop the Tor geo data (Tor is not shipped)
+        run: rm -f app/src/main/assets/tor/geoip app/src/main/assets/tor/geoip6
+
+      - name: Check the engines
+        run: |
+          set -e
+          ls -l app/libs/zedcore.aar
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            for lib in libhev-socks5-tunnel libopenconnect libzeptun-jni; do
+              [ -f "app/src/main/jniLibs/$abi/$lib.so" ] || echo "::warning::$abi/$lib.so is missing; that protocol will not work"
+            done
+            for lib in libhev-socks5-tunnel libopenconnect libzeptun-jni; do
+              so="app/src/main/jniLibs/$abi/$lib.so"
+              [ -f "$so" ] || continue
+              readelf --dyn-syms -W "$so" | grep -qE ' (JNI_OnLoad|Java_)' || { echo "::error::$abi/$lib.so has no JNI entry points; the app would crash loading it"; exit 1; }
+            done
+            for so in app/src/main/jniLibs/$abi/*.so; do
+              case "$so" in */libzeptun*) continue ;; esac
+              if readelf -d "$so" | grep -qE '\(RELR\)|0x0*6fffe000 '; then echo "::error::$so uses RELR relocations, which Android 7 and 8 cannot load"; exit 1; fi
+            done
+          done
+          find app/src/main/jniLibs -name '*.so' | sort
+
+      - name: Unlock signing
+        env:
+          USE_PLAY: ${{ inputs.signing_key != 'upload' }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          PLAY_KEYSTORE_BASE64: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
+          PLAY_KEYSTORE_PASSWORD: ${{ secrets.PLAY_KEYSTORE_PASSWORD }}
+          PLAY_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
+          PLAY_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
+        run: |
+          umask 077
+          if [ "$USE_PLAY" = "true" ]; then
+            printf '%s' "$PLAY_KEYSTORE_BASE64" | base64 -d > release.keystore
+            STORE_PW="$PLAY_KEYSTORE_PASSWORD"; KEY_PW="$PLAY_KEY_PASSWORD"; ALIAS="$PLAY_KEY_ALIAS"
+          else
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > release.keystore
+            STORE_PW="$KEYSTORE_PASSWORD"; KEY_PW="$KEY_PASSWORD"; ALIAS="$KEY_ALIAS"
+          fi
+          { echo "storeFile=release.keystore"; echo "storePassword=$STORE_PW"
+            echo "keyPassword=$KEY_PW"; echo "keyAlias=$ALIAS"; } > keystore.properties
+
+      - name: Build
+        run: ./gradlew --warning-mode all :app:assembleRelease
+
+      - name: Name them for people
+        run: |
+          set -e
+          mkdir -p dist
+          V='${{ steps.v.outputs.name }}'
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            src="app/build/outputs/apk/release/app-$abi-release.apk"
+            [ -f "$src" ] || { echo "::error::$src was not built"; exit 1; }
+            cp "$src" "dist/ZedTunnel-$V-$abi.apk"
+          done
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          python3 tools/universal-apk.py "dist/ZedTunnel-$V-arm64-v8a.apk" /tmp/universal.apk "dist/ZedTunnel-$V-armeabi-v7a.apk"
+          "$BT/zipalign" -f -P 16 4 /tmp/universal.apk /tmp/universal-aligned.apk
+          STORE_PW=$(grep '^storePassword=' keystore.properties | cut -d= -f2-) \
+          KEY_PW=$(grep '^keyPassword=' keystore.properties | cut -d= -f2-) \
+          "$BT/apksigner" sign --ks release.keystore \
+            --ks-key-alias "$(grep '^keyAlias=' keystore.properties | cut -d= -f2-)" \
+            --ks-pass env:STORE_PW --key-pass env:KEY_PW \
+            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false \
+            --out "dist/ZedTunnel-$V-universal.apk" /tmp/universal-aligned.apk
+          rm -f /tmp/universal.apk /tmp/universal-aligned.apk
+          for apk in dist/ZedTunnel-*.apk; do
+            "$BT/apksigner" verify "$apk"
+            a=$("$BT/apksigner" verify --print-certs "$apk" | grep -m1 'SHA-256' | awk '{print $NF}')
+            b=$("$BT/apksigner" verify --print-certs "dist/ZedTunnel-$V-arm64-v8a.apk" | grep -m1 'SHA-256' | awk '{print $NF}')
+            [ "$a" = "$b" ] || { echo "::error::$apk is signed with a different key"; exit 1; }
+          done
+          "$BT/aapt2" dump badging "dist/ZedTunnel-$V-universal.apk" | grep -q "native-code: 'arm64-v8a' 'armeabi-v7a'" \
+            || { echo "::error::the universal APK does not carry both ARM ABIs"; exit 1; }
+          ( cd dist && sha256sum ZedTunnel-*.apk > SHA256SUMS-android.txt )
+          ls -l dist
+
+      - name: Forget the key
+        if: always()
+        run: shred -u release.keystore keystore.properties 2>/dev/null || rm -f release.keystore keystore.properties
+
+      - uses: actions/upload-artifact@v7
+        with: { name: android-apks, path: dist/*, retention-days: 30 }
