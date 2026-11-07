@@ -66,6 +66,7 @@ class AppContainer(context: Context) {
             java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis()).toLong()
         }
         dev.cluvex.zedsecure.domain.usage.UsageLedger.load(runCatching { usageFile.readText() }.getOrNull())
+        dev.cluvex.zedsecure.domain.usage.UsageLedger.persist = { saveUsageToFile(usageFile) }
         TrafficAccountant(configRepository, scope, usageFile)
 
         LogcatTail.register(scope)
@@ -125,21 +126,23 @@ private fun anyVpnNetwork(connectivity: android.net.ConnectivityManager): Boolea
             ?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) == true
     }
 
+private fun saveUsageToFile(usageFile: java.io.File) {
+    runCatching {
+        val tmp = java.io.File(usageFile.parentFile, usageFile.name + ".tmp")
+        tmp.writeText(dev.cluvex.zedsecure.domain.usage.UsageLedger.encode())
+        if (!tmp.renameTo(usageFile)) {
+            usageFile.writeText(tmp.readText())
+            tmp.delete()
+        }
+    }
+}
+
 private class TrafficAccountant(
     private val repository: ConfigRepository,
     scope: CoroutineScope,
     private val usageFile: java.io.File,
 ) {
-    private fun saveUsage() {
-        runCatching {
-            val tmp = java.io.File(usageFile.parentFile, usageFile.name + ".tmp")
-            tmp.writeText(dev.cluvex.zedsecure.domain.usage.UsageLedger.encode())
-            if (!tmp.renameTo(usageFile)) {
-                usageFile.writeText(tmp.readText())
-                tmp.delete()
-            }
-        }
-    }
+    private fun saveUsage() = saveUsageToFile(usageFile)
 
     init {
         scope.launch {

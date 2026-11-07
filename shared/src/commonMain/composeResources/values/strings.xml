@@ -1845,4 +1845,15 @@
     <string name="usage_note">Counts the traffic that went through the tunnel while it was connected. The history stays on this device only. Weeks start on Monday.</string>
     <string name="usage_clear">Clear usage history</string>
     <string name="usage_clear_confirm">All saved daily, weekly and monthly numbers will be deleted. This cannot be undone.</string>
+    <string name="ssh_preset_load">Load preset</string>
+    <string name="ssh_preset_save">Save as preset</string>
+    <string name="ssh_preset_name">Preset name</string>
+    <string name="action_restore">Restore</string>
+    <string name="settings_full_backup">Full backup</string>
+    <string name="settings_full_backup_sum">Save servers, payload presets, settings and usage history to one file</string>
+    <string name="settings_full_backup_done">Backup saved</string>
+    <string name="settings_full_restore">Restore full backup</string>
+    <string name="settings_full_restore_sum">Load servers, payload presets, settings and usage history from a backup file</string>
+    <string name="settings_full_restore_confirm">This replaces your current servers, payload presets, settings and usage history with what\'s in the backup file. This cannot be undone.</string>
+    <string name="settings_full_restore_done">Backup restored</string>
 </resources>

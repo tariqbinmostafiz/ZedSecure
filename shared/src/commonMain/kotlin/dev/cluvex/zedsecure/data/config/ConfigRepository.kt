@@ -28,6 +28,7 @@ import dev.cluvex.zedsecure.domain.config.CustomConfig
 import dev.cluvex.zedsecure.domain.config.ConfigParseException
 import dev.cluvex.zedsecure.domain.config.ProfileSource
 import dev.cluvex.zedsecure.domain.config.OvpnConfig
+import dev.cluvex.zedsecure.domain.config.PayloadPreset
 import dev.cluvex.zedsecure.domain.config.Protocol
 import dev.cluvex.zedsecure.domain.config.ServerConfig
 import dev.cluvex.zedsecure.domain.config.SsdLink
@@ -77,6 +78,31 @@ class ConfigRepository(private val store: KeyValueStore) {
 
     private val _subscriptions = MutableStateFlow(loadSubscriptions())
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
+
+    private val _payloadPresets = MutableStateFlow(loadPayloadPresets())
+    val payloadPresets: StateFlow<List<PayloadPreset>> = _payloadPresets.asStateFlow()
+
+    fun addPayloadPreset(preset: PayloadPreset) {
+        _payloadPresets.value = listOf(preset) + _payloadPresets.value.filterNot { it.id == preset.id }
+        persistPayloadPresets()
+    }
+
+    fun deletePayloadPreset(id: String) {
+        _payloadPresets.value = _payloadPresets.value.filterNot { it.id == id }
+        persistPayloadPresets()
+    }
+
+    /** Replaces the whole list, e.g. when restoring a full backup. */
+    fun replacePayloadPresets(presets: List<PayloadPreset>) {
+        _payloadPresets.value = presets
+        persistPayloadPresets()
+    }
+
+    /** Replaces the whole server list, e.g. when restoring a full backup. */
+    fun replaceProfiles(profiles: List<VpnProfile>) {
+        _profiles.value = profiles
+        persistProfiles()
+    }
 
     private val _activeId = MutableStateFlow(store.getString(KEY_ACTIVE))
     val activeId: StateFlow<String?> = _activeId.asStateFlow()
@@ -1431,6 +1457,15 @@ class ConfigRepository(private val store: KeyValueStore) {
         store.putString(KEY_SUBS, json.encodeToString(_subscriptions.value))
     }
 
+    private fun persistPayloadPresets() {
+        store.putString(KEY_PAYLOAD_PRESETS, json.encodeToString(_payloadPresets.value))
+    }
+
+    private fun loadPayloadPresets(): List<PayloadPreset> {
+        val raw = store.getString(KEY_PAYLOAD_PRESETS) ?: return emptyList()
+        return runCatching { json.decodeFromString<List<PayloadPreset>>(raw) }.getOrDefault(emptyList())
+    }
+
     private fun loadProfiles(): List<VpnProfile> {
         val raw = store.getString(KEY_PROFILES) ?: return emptyList()
         val loaded = runCatching { json.decodeFromString<List<VpnProfile>>(raw) }.getOrDefault(emptyList())
@@ -1468,6 +1503,7 @@ class ConfigRepository(private val store: KeyValueStore) {
         private const val PREFS = "zed_configs"
         private const val KEY_PROFILES = "profiles"
         private const val KEY_SUBS = "subscriptions"
+        private const val KEY_PAYLOAD_PRESETS = "payload_presets"
         private const val KEY_ACTIVE = "active_id"
         private const val KEY_AUTO_PICK = "auto_pick:"
 

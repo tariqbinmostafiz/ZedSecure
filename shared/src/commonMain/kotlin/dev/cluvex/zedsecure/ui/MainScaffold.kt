@@ -424,6 +424,7 @@ fun MainScaffold(
                 TopDestination.Usage -> dev.cluvex.zedsecure.ui.navigation.UsageTabPage(innerPadding)
                 TopDestination.Settings -> SettingsScreen(
                     settings = settings,
+                    repository = configRepository,
                     contentPadding = innerPadding,
                     onUpdate = onUpdateSettings,
                     onLanguage = onLanguage,

@@ -52,6 +52,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -1432,6 +1433,7 @@ fun ServersScreen(
     }
 
     if (showSsh) {
+        val payloadPresets by repository.payloadPresets.collectAsState()
         SshSheet(
             onDismiss = { showSsh = false },
             onSave = { name, settings ->
@@ -1439,6 +1441,9 @@ fun ServersScreen(
                 repository.addSsh(settings, name)
                 onServerActivated()
             },
+            presets = payloadPresets,
+            onSavePreset = { repository.addPayloadPreset(it) },
+            onDeletePreset = { repository.deletePayloadPreset(it) },
         )
     }
 
@@ -1729,6 +1734,7 @@ fun ServersScreen(
                 )
             }
             target.isSsh -> {
+                val payloadPresets by repository.payloadPresets.collectAsState()
                 SshSheet(
                     initial = target.sshSettings(),
                     initialName = target.name,
@@ -1740,6 +1746,9 @@ fun ServersScreen(
                         toastRes(Res.string.saved)
                         editTarget = null
                     },
+                    presets = payloadPresets,
+                    onSavePreset = { repository.addPayloadPreset(it) },
+                    onDeletePreset = { repository.deletePayloadPreset(it) },
                 )
             }
             else -> {

@@ -13,8 +13,17 @@ object UsageLedger {
     private val state = MutableStateFlow<Map<Int, DayUsage>>(emptyMap())
     val days: StateFlow<Map<Int, DayUsage>> = state.asStateFlow()
 
+    /** The platform sets this at startup to persist [days] to disk; a no-op until then. */
+    var persist: () -> Unit = {}
+
     fun load(text: String?) {
         state.value = UsageCodec.decode(text)
+    }
+
+    /** Like [load], but also saves immediately — used when restoring a full backup. */
+    fun restore(text: String?) {
+        load(text)
+        persist()
     }
 
     fun record(down: Long, up: Long, nowMillis: Long, offsetMillis: Long) {

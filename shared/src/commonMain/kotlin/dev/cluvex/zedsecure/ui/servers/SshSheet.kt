@@ -5,6 +5,9 @@ package dev.cluvex.zedsecure.ui.servers
 import org.jetbrains.compose.resources.StringResource
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,7 +15,13 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
@@ -22,15 +31,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.weight
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.cluvex.zedsecure.shared.resources.Res
 import dev.cluvex.zedsecure.shared.resources.*
+import dev.cluvex.zedsecure.domain.config.PayloadPreset
 import dev.cluvex.zedsecure.domain.config.SshProfile
+import dev.cluvex.zedsecure.platform.newId
 import dev.cluvex.zedsecure.ui.components.PickerField
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
 
@@ -40,7 +54,13 @@ fun SshSheet(
     onSave: (name: String, SshProfile) -> Unit,
     initial: SshProfile? = null,
     initialName: String = "",
+    presets: List<PayloadPreset> = emptyList(),
+    onSavePreset: (PayloadPreset) -> Unit = {},
+    onDeletePreset: (id: String) -> Unit = {},
 ) {
+    var showPresetMenu by remember { mutableStateOf(false) }
+    var showSavePresetDialog by remember { mutableStateOf(false) }
+    var presetName by remember { mutableStateOf("") }
     var name by remember { mutableStateOf(initialName) }
     var host by remember { mutableStateOf(initial?.host ?: "") }
     var port by remember { mutableStateOf((initial?.port ?: 22).toString()) }
@@ -92,11 +112,52 @@ fun SshSheet(
                 F(password, Res.string.manual_password) { password = it }
             }
 
-            Text(
-                stringResource(Res.string.ssh_section_payload),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.ssh_section_payload),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                Box {
+                    TextButton(onClick = { showPresetMenu = true }, enabled = presets.isNotEmpty()) {
+                        Text(stringResource(Res.string.ssh_preset_load))
+                    }
+                    DropdownMenu(expanded = showPresetMenu, onDismissRequest = { showPresetMenu = false }) {
+                        presets.forEach { preset ->
+                            DropdownMenuItem(
+                                text = { Text(preset.name) },
+                                onClick = {
+                                    payloadMode = preset.payloadMode
+                                    payload = preset.payload
+                                    payloadDelay = preset.payloadDelayMs.toString()
+                                    proxyHost = preset.proxyHost
+                                    proxyPort = preset.proxyPort.toString()
+                                    sni = preset.sni
+                                    responseMode = preset.responseMode
+                                    showPresetMenu = false
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = {
+                                        onDeletePreset(preset.id)
+                                    }) {
+                                        Icon(
+                                            painterResource(Res.drawable.ic_delete),
+                                            contentDescription = stringResource(Res.string.action_delete),
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+                IconButton(onClick = { presetName = ""; showSavePresetDialog = true }) {
+                    Icon(
+                        painterResource(Res.drawable.ic_add),
+                        contentDescription = stringResource(Res.string.ssh_preset_save),
+                    )
+                }
+            }
             PickerField(
                 label = stringResource(Res.string.ssh_payload_mode),
                 options = listOf(
@@ -129,6 +190,39 @@ fun SshSheet(
                     ),
                     selected = responseMode,
                     onSelect = { responseMode = it },
+                )
+            }
+            if (showSavePresetDialog) {
+                AlertDialog(
+                    onDismissRequest = { showSavePresetDialog = false },
+                    title = { Text(stringResource(Res.string.ssh_preset_save)) },
+                    text = {
+                        F(presetName, Res.string.ssh_preset_name) { presetName = it }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            enabled = presetName.isNotBlank(),
+                            onClick = {
+                                onSavePreset(
+                                    PayloadPreset(
+                                        id = newId(),
+                                        name = presetName.trim(),
+                                        payloadMode = payloadMode,
+                                        payload = payload.trim(),
+                                        payloadDelayMs = payloadDelay.toIntOrNull()?.coerceIn(0, 60_000) ?: 200,
+                                        proxyHost = proxyHost.trim(),
+                                        proxyPort = proxyPort.toIntOrNull() ?: 8080,
+                                        sni = sni.trim(),
+                                        responseMode = responseMode,
+                                    ),
+                                )
+                                showSavePresetDialog = false
+                            },
+                        ) { Text(stringResource(Res.string.action_save)) }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showSavePresetDialog = false }) { Text(stringResource(Res.string.action_cancel)) }
+                    },
                 )
             }
             F(hostKeyPin, Res.string.ssh_host_key_pin, "SHA256:...") { hostKeyPin = it }

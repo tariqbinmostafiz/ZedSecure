@@ -83,6 +83,7 @@ enum class SettingsPage {
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
+    repository: dev.cluvex.zedsecure.data.config.ConfigRepository,
     contentPadding: PaddingValues,
     onUpdate: ((AppSettings) -> AppSettings) -> Unit,
     onLanguage: (AppLanguage) -> Unit,
@@ -2393,16 +2394,23 @@ private fun AdvancedPage(
                 onCheckedChange = { v -> onUpdate { it.copy(detectServerLocation = v) } },
             )
         }
-        SettingsBackupGroup(s, onUpdate)
+        SettingsBackupGroup(s, repository, onUpdate)
     }
 }
 
 @Composable
-private fun SettingsBackupGroup(s: AppSettings, onUpdate: ((AppSettings) -> AppSettings) -> Unit) {
+private fun SettingsBackupGroup(
+    s: AppSettings,
+    repository: dev.cluvex.zedsecure.data.config.ConfigRepository,
+    onUpdate: ((AppSettings) -> AppSettings) -> Unit,
+) {
     val platform = LocalPlatform.current
     val scope = rememberCoroutineScope()
     val imported = stringResource(Res.string.settings_imported)
     val invalid = stringResource(Res.string.settings_import_invalid)
+    val fullBackedUp = stringResource(Res.string.settings_full_backup_done)
+    val fullRestored = stringResource(Res.string.settings_full_restore_done)
+    var confirmRestore by remember { mutableStateOf<dev.cluvex.zedsecure.domain.model.FullBackup.Payload?>(null) }
     SettingsGroup(stringResource(Res.string.settings_backup_group)) {
         SettingsActionRow(
             title = stringResource(Res.string.settings_export),
@@ -2428,6 +2436,61 @@ private fun SettingsBackupGroup(s: AppSettings, onUpdate: ((AppSettings) -> AppS
                         onUpdate { restored }
                         platform.toast(imported)
                     }
+                }
+            },
+        )
+        SettingsActionRow(
+            title = stringResource(Res.string.settings_full_backup),
+            summary = stringResource(Res.string.settings_full_backup_sum),
+            onClick = {
+                val data = dev.cluvex.zedsecure.domain.model.FullBackup.Payload(
+                    settings = s,
+                    profiles = repository.profiles.value,
+                    presets = repository.payloadPresets.value,
+                    usage = dev.cluvex.zedsecure.domain.usage.UsageLedger.encode(),
+                )
+                platform.saveFile(
+                    dev.cluvex.zedsecure.domain.model.FullBackup.FILE_NAME,
+                    "application/json",
+                    dev.cluvex.zedsecure.domain.model.FullBackup.export(data).encodeToByteArray(),
+                )
+                platform.toast(fullBackedUp)
+            },
+        )
+        SettingsActionRow(
+            title = stringResource(Res.string.settings_full_restore),
+            summary = stringResource(Res.string.settings_full_restore_sum),
+            onClick = {
+                scope.launch {
+                    val pick = platform.pickFileBytes() ?: return@launch
+                    val restored = dev.cluvex.zedsecure.domain.model.FullBackup.read(pick.bytes.decodeToString())
+                    if (restored == null) {
+                        platform.toast(invalid)
+                    } else {
+                        confirmRestore = restored
+                    }
+                }
+            },
+        )
+    }
+    confirmRestore?.let { data ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmRestore = null },
+            title = { Text(stringResource(Res.string.settings_full_restore)) },
+            text = { Text(stringResource(Res.string.settings_full_restore_confirm)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    onUpdate { data.settings }
+                    repository.replaceProfiles(data.profiles)
+                    repository.replacePayloadPresets(data.presets)
+                    dev.cluvex.zedsecure.domain.usage.UsageLedger.restore(data.usage)
+                    confirmRestore = null
+                    platform.toast(fullRestored)
+                }) { Text(stringResource(Res.string.action_restore)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmRestore = null }) {
+                    Text(stringResource(Res.string.action_cancel))
                 }
             },
         )
