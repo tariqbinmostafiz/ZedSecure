@@ -74,6 +74,7 @@ import dev.cluvex.zedsecure.domain.config.effectiveLanSocksPort
 import dev.cluvex.zedsecure.domain.config.effectiveLocalProxyPort
 import dev.cluvex.zedsecure.platform.secureRandomToken
 import dev.cluvex.zedsecure.ui.platform.appVerticalScroll
+import androidx.compose.material3.Text
 
 enum class SettingsPage {
     Root, Ui, Vpn, Core, Routing, PerApp, Mux, Fragment, Observatory, Advanced, Mode, Assets, SingBox,
