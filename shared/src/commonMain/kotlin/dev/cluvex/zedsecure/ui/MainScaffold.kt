@@ -38,6 +38,9 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.cluvex.zedsecure.data.config.ConfigRepository
@@ -231,10 +234,32 @@ fun MainScaffold(
       } else {
           scaffoldPadding
       }
+      var swipeDrag by androidx.compose.runtime.remember { mutableFloatStateOf(0f) }
       androidx.compose.foundation.layout.Box(
           Modifier
               .fillMaxSize()
-              .then(if (dock) Modifier.nestedScroll(dockScroll) else Modifier),
+              .then(if (dock) Modifier.nestedScroll(dockScroll) else Modifier)
+              .pointerInput(tabs, current) {
+                  val tabIndex = tabs.indexOf(current)
+                  if (tabIndex < 0) return@pointerInput
+                  val threshold = 72.dp.toPx()
+                  detectHorizontalDragGestures(
+                      onDragStart = { swipeDrag = 0f },
+                      onDragEnd = {
+                          val next = when {
+                              swipeDrag <= -threshold -> tabs.getOrNull(tabIndex + 1)
+                              swipeDrag >= threshold -> tabs.getOrNull(tabIndex - 1)
+                              else -> null
+                          }
+                          if (next != null) current = next
+                          swipeDrag = 0f
+                      },
+                      onDragCancel = { swipeDrag = 0f },
+                  ) { change, dragAmount ->
+                      swipeDrag += dragAmount
+                      change.consume()
+                  }
+              },
       ) {
         val sign = dev.cluvex.zedsecure.ui.motion.layoutSign()
         AnimatedContent(
